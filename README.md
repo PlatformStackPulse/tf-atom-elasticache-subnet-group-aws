@@ -3,9 +3,35 @@
 [![CI](https://github.com/PlatformStackPulse/tf-atom-elasticache-subnet-group-aws/actions/workflows/ci.yml/badge.svg)](https://github.com/PlatformStackPulse/tf-atom-elasticache-subnet-group-aws/actions/workflows/ci.yml)
 ![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.6.0-blueviolet)
 
-## Purpose
+A tf-label-compliant Terraform atom that provisions an AWS ElastiCache subnet group, defining the set of subnets in which ElastiCache (Redis / Valkey / Memcached) clusters can be placed.
 
-ElastiCache subnet group for placing cache clusters in specific subnets.
+## Features
+
+- Creates an `aws_elasticache_subnet_group` from a caller-supplied list of subnet IDs.
+- Consistent, deterministic naming and tagging via the [tf-label](https://github.com/PlatformStackPulse/tf-label) `module.this` context (namespace / environment / stage / name / attributes).
+- Optional custom `description`; defaults to a human-readable string derived from the tf-label `id`.
+- Toggleable with the `enabled` flag — set `enabled = false` to create no resources (all outputs return `null`).
+- Input validation requires at least one subnet ID.
+- Exposes the subnet group `id` and `name` as outputs for downstream ElastiCache replication groups / clusters.
+
+## Usage
+
+```hcl
+module "elasticache_subnet_group" {
+  source = "git::https://github.com/PlatformStackPulse/tf-atom-elasticache-subnet-group-aws.git?ref=v1.0.0"
+
+  namespace   = "eg"
+  environment = "uw2"
+  stage       = "prod"
+  name        = "cache"
+
+  subnet_ids = ["subnet-0123456789abcdef0", "subnet-0123456789abcdef1"]
+
+  tags = {
+    Team = "platform"
+  }
+}
+```
 
 ## Module Documentation
 
@@ -66,3 +92,16 @@ ElastiCache subnet group for placing cache clusters in specific subnets.
 | <a name="output_id"></a> [id](#output\_id) | ID of the ElastiCache subnet group |
 | <a name="output_name"></a> [name](#output\_name) | Name of the ElastiCache subnet group |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+This module ships real `terraform test` unit tests (mock AWS provider — no cloud calls) under [`tests/unit/`](tests/unit/). They assert the tf-label-derived name, the resource count, subnet-id pass-through, the default description, and the `enabled = false` no-op behaviour.
+
+```bash
+# Unit tests (mocked provider)
+terraform init -backend=false
+terraform test -test-directory=tests/unit
+
+# Or via the Makefile
+make test
+```
